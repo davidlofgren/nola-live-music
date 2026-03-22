@@ -1,1 +1,1104 @@
-<!DOCTYPE html><html><head><title>NOLA Live Music Map</title></head><body><h1>NOLA Live Music</h1><p>Interactive map of live music venues in New Orleans, April 2026</p></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOLA Live Music Map - WWOZ Livewire April 2026</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Leaflet MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-bottom: 2px solid #d4a843;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #d4a843;
+            margin-bottom: 0.25rem;
+            letter-spacing: 1px;
+        }
+
+        .header-subtitle {
+            font-size: 0.85rem;
+            color: #b8860b;
+            font-weight: 500;
+        }
+
+        /* Day Navigation and View Toggle */
+        .day-nav-container {
+            background: #0f3460;
+            border-bottom: 1px solid #d4a843;
+            padding: 0.75rem 1.5rem;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .day-nav {
+            display: flex;
+            gap: 0.75rem;
+            flex: 1;
+            min-width: min-content;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .view-btn {
+            padding: 0.6rem 1rem;
+            border: 2px solid #d4a843;
+            background: rgba(212, 168, 67, 0.1);
+            color: #d4a843;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .view-btn:hover {
+            background: rgba(212, 168, 67, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .view-btn.active {
+            background: #d4a843;
+            color: #1a1a2e;
+            box-shadow: 0 4px 12px rgba(212, 168, 67, 0.3);
+        }
+
+        .day-btn {
+            flex-shrink: 0;
+            padding: 0.6rem 1.2rem;
+            border: 2px solid #d4a843;
+            background: rgba(212, 168, 67, 0.1);
+            color: #d4a843;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        .day-btn:hover {
+            background: rgba(212, 168, 67, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .day-btn.active {
+            background: #d4a843;
+            color: #1a1a2e;
+            box-shadow: 0 4px 12px rgba(212, 168, 67, 0.3);
+        }
+
+        .event-badge {
+            display: inline-block;
+            background: #dc2f2f;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 24px;
+            text-align: center;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+
+        #map.active {
+            display: block;
+        }
+
+        /* List View Container */
+        .list-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: #1a1a2e;
+            padding: 1.5rem;
+        }
+
+        .list-container.active {
+            display: block;
+        }
+
+        .list-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .list-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .venue-card {
+            background: #16213e;
+            border: 2px solid #d4a843;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .venue-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(212, 168, 67, 0.2);
+        }
+
+        .venue-card-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #d4a843;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #d4a843;
+            padding-bottom: 0.5rem;
+        }
+
+        .venue-card-event {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(212, 168, 67, 0.2);
+        }
+
+        .venue-card-event:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .event-card-time {
+            font-weight: 600;
+            color: #d4a843;
+            font-size: 0.9rem;
+        }
+
+        .event-card-artist {
+            color: #e0e0e0;
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+
+        .event-card-description {
+            color: #999;
+            font-size: 0.85rem;
+            margin-top: 0.4rem;
+            line-height: 1.4;
+            font-style: italic;
+        }
+
+        .venue-card-links {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .venue-card-link {
+            display: inline-block;
+            padding: 0.4rem 0.6rem;
+            background: #d4a843;
+            color: #1a1a2e;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+            text-align: center;
+            flex: 1;
+        }
+
+        .venue-card-link:hover {
+            background: #f0d88f;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(212, 168, 67, 0.3);
+        }
+
+        .venue-card-link.apple-music-link {
+            background: rgba(252, 60, 68, 0.15) !important;
+            border: 1px solid #fc3c44;
+            color: #fc3c44 !important;
+        }
+
+        .venue-card-link.apple-music-link:hover {
+            background: rgba(252, 60, 68, 0.3) !important;
+        }
+
+        .leaflet-control-attribution {
+            background: rgba(26, 26, 46, 0.9) !important;
+            color: #d4a843 !important;
+            border: 1px solid #d4a843 !important;
+        }
+
+        .leaflet-control-attribution a {
+            color: #d4a843 !important;
+        }
+
+        /* Custom Map Controls */
+        .leaflet-control-zoom {
+            border: 2px solid #d4a843 !important;
+            border-radius: 8px !important;
+            background: rgba(26, 26, 46, 0.95) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        .leaflet-control-zoom a {
+            background: transparent !important;
+            color: #d4a843 !important;
+            border-bottom: 1px solid #d4a843 !important;
+            font-size: 1.2rem !important;
+            font-weight: bold !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: rgba(212, 168, 67, 0.2) !important;
+        }
+
+        .leaflet-control-zoom a:last-child {
+            border-bottom: none !important;
+        }
+
+        /* Marker Cluster Custom Styling */
+        .marker-cluster {
+            background: linear-gradient(135deg, #d4a843 0%, #b8860b 100%) !important;
+            border: 2px solid #1a1a2e !important;
+        }
+
+        .marker-cluster div {
+            background: linear-gradient(135deg, #d4a843 0%, #b8860b 100%) !important;
+        }
+
+        .marker-cluster-small {
+            background: rgba(212, 168, 67, 0.7) !important;
+        }
+
+        .marker-cluster-small div {
+            background: rgba(212, 168, 67, 0.7) !important;
+        }
+
+        .marker-cluster-medium {
+            background: rgba(212, 168, 67, 0.8) !important;
+        }
+
+        .marker-cluster-medium div {
+            background: rgba(212, 168, 67, 0.8) !important;
+        }
+
+        .marker-cluster-large {
+            background: rgba(212, 168, 67, 0.9) !important;
+        }
+
+        .marker-cluster-large div {
+            background: rgba(212, 168, 67, 0.9) !important;
+        }
+
+        .marker-cluster span {
+            font-family: 'Playfair Display', serif !important;
+            font-weight: 700 !important;
+            color: #1a1a2e !important;
+        }
+
+        /* Leaflet Popup Styling */
+        .leaflet-popup-content-wrapper {
+            background: #16213e !important;
+            border: 2px solid #d4a843 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8) !important;
+        }
+
+        .leaflet-popup-tip {
+            background: #16213e !important;
+            border-top-color: #d4a843 !important;
+        }
+
+        .leaflet-popup-close-button {
+            color: #d4a843 !important;
+            font-size: 1.5rem !important;
+        }
+
+        .leaflet-popup-close-button:hover {
+            color: #f0d88f !important;
+        }
+
+        /* Popup Content */
+        .venue-popup {
+            color: #e0e0e0;
+            font-size: 0.95rem;
+        }
+
+        .venue-popup-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #d4a843;
+            margin-bottom: 0.75rem;
+            border-bottom: 2px solid #d4a843;
+            padding-bottom: 0.5rem;
+        }
+
+        .venue-events {
+            margin: 0.75rem 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .venue-event {
+            background: rgba(212, 168, 67, 0.1);
+            border-left: 3px solid #d4a843;
+            padding: 0.6rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+        }
+
+        .event-time {
+            font-weight: 600;
+            color: #d4a843;
+            font-size: 0.85rem;
+        }
+
+        .event-artist {
+            color: #e0e0e0;
+            margin-top: 0.25rem;
+            word-wrap: break-word;
+        }
+
+        .event-description {
+            color: #999;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+            line-height: 1.3;
+            font-style: italic;
+        }
+
+        .venue-links {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .venue-link {
+            display: inline-block;
+            padding: 0.5rem 0.8rem;
+            background: #d4a843;
+            color: #1a1a2e;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .venue-link:hover {
+            background: #f0d88f;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(212, 168, 67, 0.3);
+        }
+
+        /* Custom Marker Icon */
+        .custom-marker {
+            background: #d4a843;
+            border: 2px solid #1a1a2e;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            width: 32px;
+            height: 32px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        .custom-marker::before {
+            content: 'âª';
+            color: #1a1a2e;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transform: rotate(45deg);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: 1.4rem;
+            }
+
+            .day-nav-container {
+                flex-wrap: wrap;
+                padding: 0.5rem 1rem;
+            }
+
+            .view-toggle {
+                order: -1;
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+
+            .day-nav {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+
+            .day-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .event-badge {
+                width: 20px;
+                height: 20px;
+                line-height: 20px;
+                font-size: 0.7rem;
+                margin-left: 0.25rem;
+            }
+
+            header {
+                padding: 0.75rem 1rem;
+            }
+
+            .list-content {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .list-container {
+                padding: 1rem;
+            }
+        }
+
+        .apple-music-link {
+            background: rgba(252, 60, 68, 0.15) !important;
+            border-color: #fc3c44 !important;
+            color: #fc3c44 !important;
+        }
+
+        .apple-music-link:hover {
+            background: rgba(252, 60, 68, 0.3) !important;
+        }
+
+        /* Scrollbar styling for popup */
+        .venue-events::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .venue-events::-webkit-scrollbar-track {
+            background: rgba(212, 168, 67, 0.1);
+        }
+
+        .venue-events::-webkit-scrollbar-thumb {
+            background: #d4a843;
+            border-radius: 3px;
+        }
+
+        .venue-events::-webkit-scrollbar-thumb:hover {
+            background: #f0d88f;
+        }
+
+        /* Scrollbar styling for list container */
+        .list-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .list-container::-webkit-scrollbar-track {
+            background: rgba(212, 168, 67, 0.1);
+        }
+
+        .list-container::-webkit-scrollbar-thumb {
+            background: #d4a843;
+            border-radius: 4px;
+        }
+
+        .list-container::-webkit-scrollbar-thumb:hover {
+            background: #f0d88f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-title">NOLA Live Music</div>
+                <div class="header-subtitle">April 4-9, 2026 â¢ Powered by WWOZ Livewire</div>
+            </div>
+        </header>
+
+        <div class="day-nav-container">
+            <div class="day-nav" id="dayNav"></div>
+            <div class="view-toggle">
+                <button class="view-btn active" id="mapViewBtn" data-view="map">Map</button>
+                <button class="view-btn" id="listViewBtn" data-view="list">List</button>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map" class="active"></div>
+            <div class="list-container" id="listContainer">
+                <div class="list-content" id="listContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+    <script>
+        // Artist Descriptions
+        const artistDescriptions = {
+            "Rebirth Brass Band": "Grammy-winning New Orleans brass band known for blending traditional jazz with funk and hip-hop. A Crescent City institution since 1983.",
+            "King Gizzard": "Prolific Australian psychedelic rock band known for genre-hopping across garage, prog, jazz, thrash metal, and microtonal music.",
+            "Leon Bridges": "Grammy-winning singer-songwriter from Fort Worth, TX, known for his smooth retro-soul sound and hits like 'Coming Home.'",
+            "Counting Crows": "Multi-platinum alternative rock band from Berkeley, CA, led by Adam Duritz and known for hits like 'Mr. Jones' and 'Round Here.'",
+            "Galactic": "New Orleans funk and jam band blending jazz, hip-hop, and electronic elements. A staple of the Crescent City music scene since 1994.",
+            "The Revivalists": "New Orleans-born rock band known for their high-energy live shows and hit single 'Wish I Knew You.'",
+            "Preservation All-Stars": "Rotating ensemble of top New Orleans jazz musicians performing nightly at the legendary Preservation Hall in the French Quarter.",
+            "Kermit Ruffins": "Beloved New Orleans trumpeter and vocalist known for his joyful jazz performances and legendary barbecue cookouts at his shows.",
+            "Stanton Moore": "Grammy-nominated drummer and founding member of Galactic, known for his innovative New Orleans funk drumming style.",
+            "Teddy Swims": "Genre-blending vocalist from Atlanta known for his powerful voice spanning soul, country, and pop, with hits like 'Lose Control.'",
+            "George Porter Jr.": "Legendary bassist and founding member of The Meters, one of the most influential funk bands in music history.",
+            "Matisyahu": "Reggae and hip-hop artist known for blending Hasidic Jewish themes with beatboxing, rap, and alternative rock.",
+            "Lettuce": "Seven-piece funk band from Boston known for deep grooves, improvisational jams, and collaborations across the jam band scene.",
+            "Eric Johanson": "Louisiana-born blues-rock guitarist, singer, and songwriter known for his fiery slide guitar and soulful vocals.",
+            "Wendell Brunious": "New Orleans trumpeter and vocalist who carries on the traditional jazz legacy as a Preservation Hall regular.",
+            "Jeremy Davenport": "Smooth jazz trumpeter and vocalist who holds court regularly at The Ritz-Carlton's Davenport Lounge in New Orleans.",
+            "Barns Courtney": "British singer-songwriter known for his indie rock anthems and raw, energetic live performances.",
+            "Tab Benoit": "Louisiana blues guitarist and singer known for his swampy tone, powerful live shows, and environmental activism.",
+            "Meschiya Lake": "New Orleans jazz and blues vocalist known for her vintage style and powerful performances rooted in early 20th-century music.",
+            "Flow Tribe": "High-energy New Orleans party band blending funk, rock, hip-hop, and brass band traditions into an irresistible live show.",
+            "Big 6 Brass Band": "Young New Orleans brass band carrying on the city's second line tradition with energetic street performances.",
+            "New Orleans Suspects": "Supergroup featuring members of The Radiators, The Meters, and other NOLA legends, playing funk, rock, and R&B.",
+            "Rotary Downs": "New Orleans indie rock band known for their psychedelic-tinged sound and thoughtful songwriting.",
+            "Andrew Duhon": "New Orleans singer-songwriter known for his warm Americana sound and deeply personal folk-influenced lyrics.",
+            "Shannon Powell": "Acclaimed New Orleans drummer known as 'The King of TremÃ©,' celebrated for his mastery of jazz, funk, and brass band drumming.",
+            "Washboard Chaz+c: "New Orleans blues musician and washboard virtuoso who keeps the tradition of jug band and street music alive.",
+            "Walter Wolfman Washington": "New Orleans R&B and blues guitarist and vocalist whose smooth style has been a fixture of the city's music scene for decades.",
+            "The Iguanas": "New Orleans band blending Tex-Mex, roots rock, and Latin rhythms into a unique Gulf Coast sound since 1990.",
+            "Dukes of Dixieland": "Historic New Orleans traditional jazz ensemble that has been performing Dixieland jazz since the 1940s.",
+            "Alex McMurray": "New Orleans singer-songwriter known for his witty, literary lyrics and eclectic style spanning folk, country, and punk.",
+            "Corey Henry": "New Orleans trombonist and bandleader of The Treme Funktet, blending brass band tradition with deep funk grooves.",
+            "Leyla McCalla": "Haitian-American cellist, singer, and former member of the Carolina Chocolate Drops, blending Creole, folk, and jazz.",
+            "The Deslondes": "New Orleans country and roots band drawing from honky-tonk, R&B, and swamp pop traditions of the American South.",
+            "Curley Taylor": "Southwest Louisiana zydeco musician keeping the Creole music tradition alive with high-energy accordion-driven performances.",
+            "Bruce Daigrepont": "Cajun accordion player and singer who has been a leading figure in Louisiana Cajun music for over three decades.",
+            "Nate Cameron": "New Orleans jazz guitarist known for his sophisticated style and regular performances at the Ace Hotel's Three Keys.",
+            "David Doucet": "Guitarist of the Grammy-winning Cajun band BeauSoleil and a master of Louisiana French acoustic music.",
+            "Sugar Bear": "New Orleans jazz vocalist and entertainer known for his charismatic brunch performances at the Omni Royal Orleans.",
+            "Steamboat Stompers": "Traditional jazz/band performing aboard the Steamboat Natchez, keeping the riverboat jazz tradition alive on the Mississippi.",
+            "Mark Braud": "New Orleans trumpeter from a storied musical family, carrying on the tradition of classic New Orleans jazz.",
+            "Aurora Nealand": "Multi-instrumentalist and vocalist known for adventurous performances spanning traditional jazz/experimental, and avant-garde.",
+            "Tom McDermott": "New Orleans pianist celebrated for his mastery of traditional jazz, Brazilian choro, and ragtime styles.",
+            "Danny Rubio": "Versatile New Orleans musician leading The Catahoula Music Company through jazz, blues, and roots music at Maison Bourbon.",
+            "Tricia BouttÃ©": "New Orleans vocalist known for her rich voice and dynamic performances spanning jazz, gospel, and R&B.",
+            "Irvin Mayfield": "Grammy-winning New Orleans trumpeter and composer known for his modern approach to traditional jazz.",
+            "David Torkanowsky": "Acclaimed New Orleans pianist who has performed with artists ranging from Astral Project to The Neville Brothers.",
+            "Tony Dagradi": "New Orleans saxophonist and former member of Astral Project, known for his sophisticated modern jazz style.",
+            "Ashlin Parker": "New Orleans trumpeter, vocalist, and cultural ambassador blending jazz with social commentary and community activism.",
+            "sunn o)))": "Experimental drone metal duo known for their massively amplified, ultra-slow guitar performances and immersive live shows.",
+            "Jake Eckert": "Guitarist of The Dirty Dozen Brass Band, bringing rock edge to New Orleans' legendary brass ensemble.",
+            "Sporty's Brass Band": "Young New Orleans brass band keeping the tradition of second lines and street music alive in the city's neighborhoods.",
+            "Giulia Millanta": "Italian-born, Austin-based singer-songwriter blending European art-song sensibility with Americana and indie folk.",
+            "Joy Clark": "New Orleans singer-songwriter known for her soulful voice and genre-crossing style blending folk, blues, and pop.",
+            "Pete Olynciw": "New Orleans guitarist and DJ known for his eclectic performances spanning multiple genres across the city's venues.",
+            "Paperchase": "New Orleans-based band bringing energetic performances of funk, soul, and dance music to the city's nightlife.",
+            "Margie Perez": "New Orleans singer-songwriter and community organizer known for her open mic nights and genre-blending performances.",
+            "Charlie Burg": "Detroit-born singer-songwriter and multi-instrumentalist known for his dreamy indie pop sound.",
+            "Quarters": "Indie rock band known for their textured guitar sound and atmospheric live performances.",
+            "Nether Hour": "New Orleans-based band exploring dark, atmospheric rock and post-punk sounds.",
+            "The Broken View": "Hard-hitting rock band known for their intense live performances and melodic songwriting.",
+            "Glen David Andrews": "New Orleans trombonist and vocalist from the storied Andrews musical family, blending brass band, R&B, and soul.",
+            "Debauche": "High-energy band blending Eastern European folk, punk, and Balkan brass into wild, theatrical performances."
+        };
+
+        // Event Data
+        const eventData = {
+            '2026-04-04': [
+                { venue: 'Abita Springs Town Hall', artist: 'Northshore Cajun Dance Society presents T Marie & Bayou Juju', time: '7:30pm', link: '/events/1322091', lat: 30.4735, lng: -90.0450 },
+                { venue: 'Bacchanal (OUTDOORS)', artist: 'Miles Berry', time: '1:00pm', link: '/events/1324516', lat: 29.9600, lng: -90.0376 },
+                { venue: 'Bacchanal (OUTDOORS)', artist: 'Pete Olynciw', time: '7:00pm', link: '/events/1324536', lat: 29.9600, lng: -90.0376 },
+                { venue: 'Banks Street Bar', artist: 'Buddha Bellies', time: '9:00pm', link: '/events/1319091', lat: 29.9710, lng: -90.0950 },
+                { venue: 'Bayou Bar at the Pontchartrain', artist: 'Jordan Anderson', time: '8:00pm', link: '/events/1314936', lat: 29.9535, lng: -90.0770 },
+                { venue: 'Bayou Bar at the Pontchartrain', artist: 'Jordan Anderson', time: '10:00pm', link: '/events/1314971', lat: 29.9535, lng: -90.0770 },
+                { venue: 'Beanlandia', artist: 'La Louisiane: NBD & The Big Deals', time: '6:00pm', link: '/events/1311651', lat: 29.9601, lng: -90.0461 },
+                { venue: 'Blue Nile', artist: 'Lyndsey Smith', time: '7:00pm', link: '/events/1310281', lat: 29.9630, lng: -90.0570 },
+                { venue: 'Broadside (Outdoor Stage)', artist: 'New African Orleans ft. Leyla McCalla, The Spirit of Fi Yi Yi, Corey Henry & The Treme Funktet', time: '4:30pm', link: '/events/1325146', lat: 29.9648, lng: -90.0420 },
+                { venue: 'Bud Rip\'s', artist: 'Tropical Sound System with DJs Carol C & Dubstreet', time: '10:00pm', link: '/events/1324811', lat: 29.9620, lng: -90.0510 },
+                { venue: 'Buffa\'s', artist: 'Laura Murphy & Joey Houck', time: '8:00pm', link: '/events/1318076', lat: 29.9656, lng: -90.0555 },
+                { venue: 'Chickie Wah Wah', artist: 'Barns Courtney Unplugged Solo Sessions', time: '9:00pm', link: '/events/1318331', lat: 29.9820, lng: -90.1013 },
+                { venue: 'Davenport Lounge at The Ritz-Carlton', artist: 'Jeremy Davenport', time: '8:00pm', link: '/events/1315321', lat: 29.9546, lng: -90.0685 },
+                { venue: 'Dickie Brennan\'s Tableau', artist: 'New Orleans Spice Jazz Brunch Trio', time: '11:00am', link: '/events/1318886', lat: 29.9577, lng: -90.0630 },
+                { venue: 'Dog House, The', artist: 'Craig Cortello, The Canine Crooner', time: '2:00pm', link: '/events/1319591', lat: 29.9430, lng: -90.0690 },
+                { venue: 'Double Dealer at Orpheum Theater', artist: 'Eric Johanson', time: '9:30pm', link: '/events/1306781', lat: 29.9520, lng: -90.0703 },
+                { venue: 'Gasa Gasa', artist: 'The Broken View', time: '9:00pm', link: '/events/1315111', lat: 29.9286, lng: -90.1102 },
+                { venue: 'Jimmy\'s Music Club', artist: 'Mudbugs & Music with My Sidepiece', time: '1:00pm', link: '/events/1324451', lat: 29.9210, lng: -90.1240 },
+                { venue: 'Kermit\'s TremÃ© Mother-in-Law Lounge', artist: 'Kermit Ruffins & The BBQ Swingers', time: '6:00pm', link: '/events/1315186', lat: 29.9690, lng: -90.0630 },
+                { venue: 'Le Bon Temps RoulÃ©', artist: 'Atom Cat', time: '11:00pm', link: '/events/1324711', lat: 29.9196, lng: -90.1170 },
+                { venue: 'LeMieux Galleries', artist: 'Jammin\' on Julia with The Silver Lining Serenaders', time: '6:00pm', link: '/events/1323396', lat: 29.9434, lng: -90.0665 },
+                { venue: 'Maison Bourbon Jazz Club', artist: 'The Leroy Marshall Band', time: '3:15pm', link: '/events/1309186', lat: 29.9582, lng: -90.0650 },
+                { venue: 'Maison Bourbon Jazz Club', artist: 'Danny Rubio & The Catahoula Music Company', time: '8:00pm', link: '/events/1309196', lat: 29.9582, lng: -90.0650 },
+                { venue: 'May Baily\'s Place', artist: 'The Sweet Peas', time: '8:30pm', link: '/events/1321441', lat: 29.9544, lng: -90.0680 },
+                { venue: 'Mid-City Lanes Rock \'n\' Bowl', artist: 'Paperchase', time: '8:30pm', link: '/events/1318466', lat: 29.9570, lng: -90.0860 },
+                { venue: 'New Orleans Jazz & Blues Market', artist: 'Stanton Moore: The Music of Allen Toussaint', time: '7:30pm', link: '/events/1316371', lat: 29.9490, lng: -90.0700 },
+                { venue: 'New Orleans Jazz National Historical Park', artist: 'Drum Circle with Congo Square Preservation Society', time: '10:30am', link: '/events/1312281', lat: 29.9586, lng: -90.0621 },
+                { venue: 'New Orleans Jazz National Historical Park', artist: 'Mark Braud Trio', time: '3:00pm', link: '/events/1311271', lat: 29.9586, lng: -90.0621 },
+                { venue: 'No Dice', artist: 'Country Dance Lessons and Live Music by Andrew Duhon', time: '8:00pm', link: '/events/1313276', lat: 29.9640, lng: -90.0570 },
+                { venue: 'Original Nite Cap, The', artist: 'Blue Velvet Revue with The Austin Silly Bunch', time: '8:00pm', link: '/events/1324826', lat: 29.9640, lng: -90.0480 },
+                { venue: 'Polo Club at The Windsor Court, The', artist: 'John Royen', time: '5:30pm', link: '/events/1318896', lat: 29.9474, lng: -90.0713 },
+                { venue: 'Polo Club at The Windsor Court, The', artist: 'Bean \'N The Boys', time: '9:00pm', link: '/events/1318906', lat: 29.9474, lng: -90.0713 },
+                { venue: 'Preservation Hall', artist: 'Wendell Brunious & The Preservation Legacy Band', time: '2:30pm', link: '/events/1316736', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Wendell Brunious & The Preservation Legacy Band', time: '3:45pm', link: '/events/1316741', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '5:00pm', link: '/events/1316746', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '6:15pm', link: '/events/1316751', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '7:30pm', link: '/events/1316756', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '8:45pm', link: '/events/1316761', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Rib Room at the Omni Royal Orleans', artist: 'Sugar Bear & The Jazz Cats', time: '11:00am', link: '/events/1306181', lat: 29.9568, lng: -90.0645 },
+                { venue: 'Riverboat City of New Orleans', artist: 'Dukes of Dixieland', time: '6:00pm', link: '/events/1292306', lat: 29.9440, lng: -90.0617 },
+                { venue: 'Saturn Bar', artist: 'Alex McMurray Band', time: '6:00pm', link: '/events/1321166', lat: 29.9658, lng: -90.0430 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '11:00am', link: '/events/1306751', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '2:00pm', link: '/events/1306756', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Tipitina\'s', artist: 'Rebirth Brass Band + Sweet Magnolia', time: '8:30pm', link: '/events/1310601', lat: 29.9198, lng: -90.1200 },
+                { venue: 'Tuff Break Loser\'s Lounge', artist: 'Bad Friday with Alvarez and Interesting Results', time: '9:00pm', link: '/events/1324696', lat: 29.9648, lng: -90.0485 }
+            ],
+            '2026-04-05': [
+                { venue: 'AllWays Lounge', artist: 'Sunday Swing with Slick Skillet Serenaders', time: '8:00pm', link: '/events/1311726', lat: 29.9648, lng: -90.0488 },
+                { venue: 'Atchafalaya', artist: 'The Silver Lining Serenaders', time: '11:00am', link: '/events/1323161', lat: 29.9289, lng: -90.0896 },
+                { venue: 'Bacchanal (OUTDOORS)', artist: 'Juan Tigre', time: '1:00pm', link: '/events/1324551', lat: 29.9600, lng: -90.0376 },
+                { venue: 'Bacchanal (OUTDOORS)', artist: 'Boma Bango', time: '7:00pm', link: '/events/1324561', lat: 29.9600, lng: -90.0376 },
+                { venue: 'BK House & Gardens', artist: 'Gay Easter Parade Party with T Marie & Bayou Juju', time: '4:30pm', link: '/events/1322071', lat: 29.9650, lng: -90.0470 },
+                { venue: 'Broadside (Outdoor Stage)', artist: 'That\'s My Neighbor Benefit Concert ft. Bra\'s Band Brass Band, Hans Williams, Kaye The Beast & More!', time: '2:00pm', link: '/events/1322076', lat: 29.9648, lng: -90.0420 },
+                { venue: 'Buffa\'s', artist: 'Some Like It Hot!', time: '11:00am', link: '/events/1317966', lat: 29.9656, lng: -90.0555 },
+                { venue: 'Celebration Hall', artist: 'Big 6 Brass Band', time: '9:00pm', link: '/events/1324666', lat: 29.9745, lng: -90.1060 },
+                { venue: 'Chickie Wah Wah', artist: 'Giulia Millanta & Joy Clark', time: '8:00pm', link: '/events/1321776', lat: 29.9820, lng: -90.1013 },
+                { venue: 'Davenport Lounge at The Ritz-Carlton', artist: 'Jeremy Davenport', time: '7:00pm', link: '/events/1315326', lat: 29.9546, lng: -90.0685 },
+                { venue: 'Dickie Brennan\'s Tableau', artist: 'New Orleans Spice Jazz Brunch Trio', time: '11:00am', link: '/events/1318891', lat: 29.9577, lng: -90.0630 },
+                { venue: 'House of Blues', artist: 'Leon Bridges', time: '7:00pm', link: '/events/1282136', lat: 29.9558, lng: -90.0680 },
+                { venue: 'Howlin\' Wolf', artist: 'Rotary Downs Album Release Show', time: '8:00pm', link: '/events/1324916', lat: 29.9432, lng: -90.0694 },
+                { venue: 'Lobby at The Barnett', artist: 'Ken Swartz & the Palace of Sin', time: '11:00am', link: '/events/1310311', lat: 29.9520, lng: -90.0720 },
+                { venue: 'Maison Bourbon Jazz Club', artist: 'The Leroy Marshall Band', time: '3:15pm', link: '/events/1309206', lat: 29.9582, lng: -90.0650 },
+                { venue: 'Maison Bourbon Jazz Club', artist: 'Danny Rubio & The Catahoula Music Company', time: '8:00pm', link: '/events/1309216', lat: 29.9582, lng: -90.0650 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '5:00pm', link: '/events/1316766', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '6:15pm', link: '/events/1316771', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '7:30pm', link: '/events/1316776', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '8:45pm', link: '/events/1316781', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Rib Room at the Omni Royal Orleans', artist: 'Sugar Bear & The Jazz Cats', time: '11:00am', link: '/events/1306186', lat: 29.9568, lng: -90.0645 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '11:00am', link: '/events/1306761', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '2:00pm', link: '/events/1306766', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Tipitina\'s', artist: 'King Gizzard & The Lizard Wizard', time: '7:00pm', link: '/events/1288891', lat: 29.9198, lng: -90.1200 }
+            ],
+            '2026-04-06': [
+                { venue: 'AllWays Lounge', artist: 'Smoke Show Cabaret ft. Burlesque & Live Music from Betsy Propane & The Accessories', time: '7:00pm', link: '/events/1296171', lat: 29.9648, lng: -90.0488 },
+                { venue: 'Apple Barrel', artist: 'Mark Appleford', time: '6:00pm', link: '/events/1311316', lat: 29.9634, lng: -90.0568 },
+                { venue: 'Bacchanal (OUTDOORS)', artist: 'Byron Asher', time: '6:00pm', link: '/events/1324566', lat: 29.9600, lng: -90.0376 },
+                { venue: 'Buffa\'s', artist: 'David Doucet', time: '7:00pm', link: '/events/1318116', lat: 29.9656, lng: -90.0555 },
+                { venue: 'Civic Theatre', artist: 'sunn o)))', time: '8:00pm', link: '/events/1306896', lat: 29.9498, lng: -90.0710 },
+                { venue: 'Da Jump Off Lounge', artist: 'Sporty\'s Brass Band', time: '9:30pm', link: '/events/1324871', lat: 29.9570, lng: -90.1020 },
+                { venue: 'Maison Bourbon Jazz Club', artist: 'Danny Rubio & The Catahoula Music Company ft. Jack Pritchett', time: '8:00pm', link: '/events/1309126', lat: 29.9582, lng: -90.0650 },
+                { venue: 'Mayfield\'s 208 Bourbon presented by Felix\'s', artist: 'Kermit Ruffins ft. Irvin Mayfield: Red Bean Mondays', time: '6:00pm', link: '/events/1300466', lat: 29.9570, lng: -90.0665 },
+                { venue: 'NOLA Brewing', artist: 'NOLA Pickin\' Party Bluegrass Jam', time: '7:00pm', link: '/events/1315371', lat: 29.9345, lng: -90.0365 },
+                { venue: 'Original Nite Cap, The', artist: 'No Cap Comedy Open Mic', time: '8:00pm', link: '/events/1324831', lat: 29.9640, lng: -90.0480 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '5:00pm', link: '/events/1316786', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '6:15pm', link: '/events/1316791', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '7:30pm', link: '/events/1316796', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '8:45pm', link: '/events/1316801', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Rib Room at the Omni Royal Orleans', artist: 'Sugar Bear & The Jazz Cats', time: '11:00am', link: '/events/1306191', lat: 29.9568, lng: -90.0645 },
+                { venue: 'Santos Bar', artist: 'Jesse Morrow', time: '9:00pm', link: '/events/1324006', lat: 29.9645, lng: -90.0540 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '11:00am', link: '/events/1306771', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '2:00pm', link: '/events/1306776', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Three Keys at Ace Hotel', artist: 'Nate Cameron Trio', time: '8:00pm', link: '/events/1311546', lat: 29.9434, lng: -90.0693 },
+                { venue: 'Tipitina\'s', artist: 'Matisyahu', time: '8:00pm', link: '/events/1305771', lat: 29.9198, lng: -90.1200 }
+            ],
+            '2026-04-07': [
+                { venue: 'Apple Barrel', artist: 'Bubbles Brown', time: '6:00pm', link: '/events/1316476', lat: 29.9634, lng: -90.0568 },
+                { venue: 'Apple Barrel', artist: 'Jackson\'s Flying Circus ft. Mike Doussan & Chris Roberts', time: '10:30pm', link: '/events/1297906', lat: 29.9634, lng: -90.0568 },
+                { venue: 'Audubon Clubhouse by Dickie Brennan', artist: 'Burris & Mikayla Braun', time: '4:30pm', link: '/events/1309586', lat: 29.9230, lng: -90.1310 },
+                { venue: 'Bacchanal (OUTDOORS)', artist: 'Tangiers Combo', time: '6:00pm', link: '/events/1324586', lat: 29.9600, lng: -90.0376 },
+                { venue: 'Bayou Bar at the Pontchartrain', artist: 'The OG\'s ft. Peter Harris, Tony Dagradi, David Torkanowsky & Pedro Segundo', time: '8:00pm', link: '/events/1314906', lat: 29.9535, lng: -90.0770 },
+                { venue: 'Bayou Bar at the Pontchartrain', artist: 'The OG\'s ft. Peter Harris, Tony Dagradi, David Torkanowsky & Pedro Segundo', time: '10:00pm', link: '/events/1314911', lat: 29.9535, lng: -90.0770 },
+                { venue: 'Buffa\'s', artist: 'Alex McMurray', time: '7:00pm', link: '/events/1318036', lat: 29.9656, lng: -90.0555 },
+                { venue: 'CafÃ© Beignet on Decatur', artist: 'Bob Macy', time: '10:00am', link: '/events/1292031', lat: 29.9578, lng: -90.0630 },
+                { venue: 'Chickie Wah Wah', artist: 'Tricia BouttÃ© & A Joyful Noise', time: '8:00pm', link: '/events/1310046', lat: 29.9820, lng: -90.1013 },
+                { venue: 'Davenport Lounge at The Ritz-Carlton', artist: 'Jeremy Davenport', time: '8:00pm', link: '/events/1315331', lat: 29.9546, lng: -90.0685 },
+                { venue: 'Dew Drop Inn Hotel & Lounge', artist: 'Dew Drop Open Mic Night', time: '7:00pm', link: '/events/1317096', lat: 29.9510, lng: -90.0970 },
+                { venue: 'Ellis Marsalis Center for Music', artist: 'NOCCA Jazz Ensemble', time: '6:00pm', link: '/events/1316511', lat: 29.9630, lng: -90.0340 },
+                { venue: 'Fillmore, The', artist: 'Counting Crows', time: '7:00pm', link: '/events/1310276', lat: 29.9506, lng: -90.0720 },
+                { venue: 'Irene\'s', artist: 'Irene\'s Trio', time: '7:00pm', link: '/events/1297801', lat: 29.9601, lng: -90.0635 },
+                { venue: 'Le Bon Temps RoulÃ©', artist: 'New Orleans Suspects', time: '10:00pm', link: '/events/1324731', lat: 29.9196, lng: -90.1170 },
+                { venue: 'Maison Bourbon Jazz Club', artist: 'Danny Rubio & The Catahoula Music Company ft. Jack Pritchett', time: '8:00pm', link: '/events/1309136', lat: 29.9582, lng: -90.0650 },
+                { venue: 'Marigny Brasserie', artist: 'TJ Norris', time: '8:00pm', link: '/events/1297546', lat: 29.9650, lng: -90.0540 },
+                { venue: 'Mid-City Lanes Rock \'n\' Bowl', artist: 'The Deslondes', time: '8:00pm', link: '/events/1316216', lat: 29.9570, lng: -90.0860 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '5:00pm', link: '/events/1316806', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '6:15pm', link: '/events/1316811', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '7:30pm', link: '/events/1316816', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '8:45pm', link: '/events/1316821', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Rib Room at the Omni Royal Orleans', artist: 'Sugar Bear & The Jazz Cats', time: '11:00am', link: '/events/1306196', lat: 29.9568, lng: -90.0645 },
+                { venue: 'Santos Bar', artist: 'Dave Jordan & The NIA', time: '9:00pm', link: '/events/1324011', lat: 29.9645, lng: -90.0540 },
+                { venue: 'Saturn Bar', artist: 'Saturn Bar Comedy Open Mic', time: '8:00pm', link: '/events/1318616', lat: 29.9658, lng: -90.0430 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '11:00am', link: '/events/1306781', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '2:00pm', link: '/events/1306786', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Three Keys at Ace Hotel', artist: 'Nate Cameron Trio', time: '8:00pm', link: '/events/1311551', lat: 29.9434, lng: -90.0693 }
+            ],
+            '2026-04-08': [
+                { venue: 'Bacchanal (OUTDOORS)', artist: 'Jesse Morrow', time: '6:00pm', link: '/events/1324441', lat: 29.9600, lng: -90.0376 },
+                { venue: 'Banks Street Bar', artist: 'Gregg Hill', time: '7:00pm', link: '/events/1322891', lat: 29.9710, lng: -90.0950 },
+                { venue: 'Bayou Bar at the Pontchartrain', artist: 'Firm Roots ft. Peter Harris, The Groovemaster, Derek Douget & Dwight Fitch Jr.', time: '8:00pm', link: '/events/1314761', lat: 29.9535, lng: -90.0770 },
+                { venue: 'Bayou Bar at the Pontchartrain', artist: 'Firm Roots ft. Peter Harris, The Groovemaster, Derek Douget & Dwight Fitch Jr.', time: '10:00pm', link: '/events/1314756', lat: 29.9535, lng: -90.0770 },
+                { venue: 'Buffa\'s', artist: 'Mark Carroll & Friends', time: '7:00pm', link: '/events/1318061', lat: 29.9656, lng: -90.0555 },
+                { venue: 'CafÃ© Beignet on Decatur', artist: 'Bob Macy', time: '10:00am', link: '/events/1292036', lat: 29.9578, lng: -90.0630 },
+                { venue: 'CafÃ© Degas', artist: 'Gizinti Trio', time: '6:00pm', link: '/events/1299741', lat: 29.9816, lng: -90.0800 },
+                { venue: 'Chickie Wah Wah', artist: 'Quarters with Charlie Burg', time: '8:00pm', link: '/events/1273226', lat: 29.9820, lng: -90.1013 },
+                { venue: 'City Park - Botanical Garden (OUTDOORS)', artist: 'Evenings with Extraordinary Ales ft. Glen David Andrews', time: '5:00pm', link: '/events/1315536', lat: 29.9890, lng: -90.0960 },
+                { venue: 'City Park - Pavilion of the Two Sisters', artist: 'Wednesdays at the Pavilion ft. Meschiya Lake', time: '5:30pm', link: '/events/1315551', lat: 29.9875, lng: -90.0970 },
+                { venue: 'Davenport Lounge at The Ritz-Carlton', artist: 'Jeremy Davenport', time: '8:00pm', link: '/events/1315336', lat: 29.9546, lng: -90.0685 },
+                { venue: 'Dew Drop Inn Hotel & Lounge', artist: 'Washboard Chaz Blues Trio', time: '8:00pm', link: '/events/1310736', lat: 29.9510, lng: -90.0970 },
+                { venue: 'House of Blues', artist: 'Teddy Swims', time: '7:00pm', link: '/events/1293376', lat: 29.9558, lng: -90.0680 },
+                { venue: 'Irene\'s', artist: 'Irene\'s Trio', time: '7:00pm', link: '/events/1297806', lat: 29.9601, lng: -90.0635 },
+                { venue: 'Lafayette Square (OUTDOORS)', artist: 'Wednesday at the Square ft. Galactic', time: '5:00pm', link: '/events/1315556', lat: 29.9488, lng: -90.0720 },
+                { venue: 'Le Bon Temps RoulÃ©', artist: 'John Michael Rouchell', time: '10:00pm', link: '/events/1324746', lat: 29.9196, lng: -90.1170 },
+                { venue: 'Longue Vue House and Gardens (OUTDOORS)', artist: 'Garden Grooves ft. Flow Tribe', time: '5:30pm', link: '/events/1315571', lat: 29.9750, lng: -90.1200 },
+                { venue: 'Maison Bourbon Jazz Club', artist: 'Danny Rubio & The Catahoula Music Company ft. Jack Pritchett', time: '8:00pm', link: '/events/1309146', lat: 29.9582, lng: -90.0650 },
+                { venue: 'Mid-City Lanes Rock \'n\' Bowl', artist: 'Curley Taylor & Zydeco Trouble', time: '8:00pm', link: '/events/1318476', lat: 29.9570, lng: -90.0860 },
+                { venue: 'NOLA Brewing', artist: 'Margie Perez\'s Open Mic', time: '7:00pm', link: '/events/1315376', lat: 29.9345, lng: -90.0365 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '5:00pm', link: '/events/1316826', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '6:15pm', link: '/events/1316831', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '7:30pm', link: '/events/1316836', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '8:45pm', link: '/events/1316841', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Rib Room at the Omni Royal Orleans', artist: 'Sugar Bear & The Jazz Cats', time: '11:00am', link: '/events/1306201', lat: 29.9568, lng: -90.0645 },
+                { venue: 'Santos Bar', artist: 'Jake Eckert', time: '9:00pm', link: '/events/1324016', lat: 29.9645, lng: -90.0540 },
+                { venue: 'Saturn Bar', artist: 'Debauche', time: '9:00pm', link: '/events/1298576', lat: 29.9658, lng: -90.0430 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '11:00am', link: '/events/1306791', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '2:00pm', link: '/events/1306796', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Three Keys at Ace Hotel', artist: 'Nate Cameron Trio', time: '8:00pm', link: '/events/1311556', lat: 29.9434, lng: -90.0693 },
+                { venue: 'Tipitina\'s', artist: 'George Porter Jr.', time: '8:00pm', link: '/events/1320461', lat: 29.9198, lng: -90.1200 },
+                { venue: 'Tuff Break Loser\'s Lounge', artist: 'Organ Fridays with Joe Krown', time: '10:00pm', link: '/events/1324701', lat: 29.9648, lng: -90.0485 }
+            ],
+            '2026-04-09': [
+                { venue: 'Apple Barrel', artist: 'Bubbles Brown', time: '6:00pm', link: '/events/1316496', lat: 29.9634, lng: -90.0568 },
+                { venue: 'Bacchanal (OUTDOORS)', artist: 'Pete Olynciw', time: '6:00pm', link: '/events/1324541', lat: 29.9600, lng: -90.0376 },
+                { venue: 'Bayou Bar at the Pontchartrain', artist: 'Double Bird ft. Peter Harris, Ashlin Parker & Peter Varnado', time: '8:00pm', link: '/events/1315021', lat: 29.9535, lng: -90.0770 },
+                { venue: 'Bayou Bar at the Pontchartrain', artist: 'Double Bird ft. Peter Harris, Ashlin Parker & Peter Varnado', time: '10:00pm', link: '/events/1315026', lat: 29.9535, lng: -90.0770 },
+                { venue: 'Buffa\'s', artist: 'Susanne Ortner & Tom McDermott (Early Set)', time: '7:00pm', link: '/events/1317891', lat: 29.9656, lng: -90.0555 },
+                { venue: 'Buffa\'s', artist: 'Aurora Nealand & Tom McDermott (Second Set)', time: '8:00pm', link: '/events/1317896', lat: 29.9656, lng: -90.0555 },
+                { venue: 'CafÃ© Beignet on Decatur', artist: 'Bob Macy', time: '10:00am', link: '/events/1292041', lat: 29.9578, lng: -90.0630 },
+                { venue: 'Chickie Wah Wah', artist: 'Nether Hour', time: '9:00pm', link: '/events/1322566', lat: 29.9820, lng: -90.1013 },
+                { venue: 'City Park - Pavilion of the Two Sisters', artist: 'Thursdays at Twilight ft. Tab Benoit', time: '5:30pm', link: '/events/1315581', lat: 29.9875, lng: -90.0970 },
+                { venue: 'Davenport Lounge at The Ritz-Carlton', artist: 'Jeremy Davenport', time: '8:00pm', link: '/events/1315341', lat: 29.9546, lng: -90.0685 },
+                { venue: 'House of Blues', artist: 'The Revivalists', time: '7:00pm', link: '/events/1316066', lat: 29.9558, lng: -90.0680 },
+                { venue: 'Irene\'s', artist: 'Irene\'s Trio', time: '7:00pm', link: '/events/1297811', lat: 29.9601, lng: -90.0635 },
+                { venue: 'Le Bon Temps RoulÃ©', artist: 'Soul Project', time: '10:00pm', link: '/events/1324761', lat: 29.9196, lng: -90.1170 },
+                { venue: 'Maison Bourbon Jazz Club', artist: 'Danny Rubio & The Catahoula Music Company ft. Jack Pritchett', time: '8:00pm', link: '/events/1309156', lat: 29.9582, lng: -90.0650 },
+                { venue: 'Maple Leaf Bar', artist: 'Walter Wolfman Washington & The Roadmasters', time: '10:00pm', link: '/events/1306431', lat: 29.9340, lng: -90.1280 },
+                { venue: 'May Baily\'s Place', artist: 'Millie & The Maids', time: '8:30pm', link: '/events/1321451', lat: 29.9544, lng: -90.0680 },
+                { venue: 'Mid-City Lanes Rock \'n\' Bowl', artist: 'Bruce Daigrepont', time: '8:30pm', link: '/events/1318481', lat: 29.9570, lng: -90.0860 },
+                { venue: 'NOLA Brewing', artist: 'NOLA Brewing Comedy Open Mic', time: '8:00pm', link: '/events/1315381', lat: 29.9345, lng: -90.0365 },
+                { venue: 'Preservation Hall', artist: 'Shannon Powell & The Preservation Legacy Band', time: '5:00pm', link: '/events/1316846', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Shannon Powell & The Preservation Legacy Band', time: '6:15pm', link: '/events/1316851', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '7:30pm', link: '/events/1316856', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '8:45pm', link: '/events/1316861', lat: 29.9579, lng: -90.0653 },
+                { venue: 'Rib Room at the Omni Royal Orleans', artist: 'Sugar Bear & The Jazz Cats', time: '11:00am', link: '/events/1306206', lat: 29.9568, lng: -90.0645 },
+                { venue: 'Santos Bar', artist: 'The Iguanas', time: '9:00pm', link: '/events/1324021', lat: 29.9645, lng: -90.0540 },
+                { venue: 'Saturn Bar', artist: 'Chaz Fest Pre-Party ft. Washboard Chaz,Blues Trio & DJ Pete Olynciw', time: '8:00pm', link: '/events/1322501', lat: 29.9658, lng: -90.0430 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '11:00am', link: '/events/1306801', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '2:00pm', link: '/events/1306806', lat: 29.9550, lng: -90.0628 },
+                { venue: 'Three Keys at Ace Hotel', artist: 'Nate Cameron Trio', time: '8:00pm', link: '/events/1311561', lat: 29.9434, lng: -90.0693 },
+                { venue: 'Tipitina\'s', artist: 'Lettuce', time: '8:00pm', link: '/events/1305851', lat: 29.9198, lng: -90.1200 },
+                { venue: 'Tuff Break Loser\'s Lounge', artist: 'Tuff Trivia', time: '8:00pm', link: '/events/1324706', lat: 29.9648, lng: -90.0485 },
+                { venue: 'Toulouse Theatre', artist: 'Galactic', time: '9:00pm', link: '/events/1319331', lat: 29.9577, lng: -90.0655 },
+                { venue: 'Vaughan\'s Lounge', artist: 'Kermit Ruffins & The BBQ Swingers', time: '8:00pm', link: '/events/1312581', lat: 29.9662, lng: -90.0378 },
+                { venue: 'Zony Mash Beer Project', artist: 'Zony Mash Concert Series ft. The Quickening', time: '7:00pm', link: '/events/1316586', lat: 29.9555, lng: -90.0980 }
+            ]
+        };
+
+        const dates = ['2026-04-04', '2026-04-05', '2026-04-06', '2026-04-07', '2026-04-08', '2026-04-09'];
+        const dateLabels = ['Sat Apr 4', 'Sun Apr 5', 'Mon Apr 6', 'Tue Apr 7', 'Wed Apr 8', 'Thu Apr 9'];
+        let currentDate = dates[0];
+        let currentView = 'map';
+        let map;
+        let markerClusterGroup;
+
+        // Get description for artist
+        function getArtistDescription(artistName) {
+            for (const [key, description] of Object.entries(artistDescriptions)) {
+                if (artistName.includes(key) || key.includes(artistName)) {
+                    return description;
+                }
+            }
+            return null;
+        }
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([29.9511, -90.2623], 12);
+
+            L.tileLayer('https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors, &copy; CartoDB',
+                maxZoom: 19
+            }).addTo(map);
+
+            markerClusterGroup = L.markerClusterGroup({
+                maxClusterRadius: 80,
+                disableClusteringAtZoom: 15
+            });
+            map.addLayer(markerClusterGroup);
+
+            renderDayButtons();
+            renderMarkersForDate(currentDate);
+            renderListView(currentDate);
+            attachViewToggleListeners();
+        }
+
+        // Render day navigation buttons
+        function renderDayButtons() {
+            const dayNav = document.getElementById('dayNav');
+            dayNav.innerHTML = '';
+
+            dates.forEach((date, index) => {
+                const button = document.createElement('button');
+                button.className = 'day-btn' + (date === currentDate ? ' active' : '');
+
+                const eventCount = eventData[date].length;
+                button.innerHTML = `${dateLabels[index]} <span class="event-badge">${eventCount}</span>`;
+
+                button.addEventListener('click', () => {
+                    currentDate = date;
+                    renderDayButtons();
+                    renderMarkersForDate(date);
+                    renderListView(date);
+                });
+
+                dayNav.appendChild(button);
+            });
+        }
+
+        // Render markers for selected date
+        function renderMarkersForDate(date) {
+            markerClusterGroup.clearLayers();
+
+            const events = eventData[date];
+            const venueMap = {};
+
+            // Group events by venue
+            events.forEach(event => {
+                if (!venueMap[event.venue]) {
+                    venueMap[event.venue] = {
+                        lat: event.lat,
+                        lng: event.lng,
+                        events: []
+                    };
+                }
+                venueMap[event.venue].events.push(event);
+            });
+
+            // Create markers for each venue
+            Object.keys(venueMap).forEach(venueName => {
+                const venue = venueMap[venueName];
+                const marker = L.marker([venue.lat, venue.lng], {
+                    icon: createCustomIcon()
+                });
+
+                // Build popup content
+                let popupContent = `<div class="venue-popup">
+                    <div class="venue-popup-title">${venueName}</div>
+                    <div class="venue-events">`;
+
+                venue.events.forEach(event => {
+                    const artistName = event.artist.split(' ft.')[0].split(' with ')[0].split(' + ')[0].trim();
+                    const description = getArtistDescription(event.artist);
+                    const appleMusicLink = `https://music.apple.com/us/search?term=${encodeURIComponent(artistName)}`;
+                    const wwozLink = `https://www.wwoz.org${event.link}`;
+
+                    popupContent += `<div class="venue-event">
+                        <div class="event-time">${event.time}</div>
+                        <div class="event-artist">${event.artist}</div>`;
+
+                    if (description) {
+                        popupContent += `<div class="event-description">${description}</div>`;
+                    }
+
+                    popupContent += `<div class="venue-links">
+                            <a href="${wwozLink}" target="_blank" class="venue-link">WWOZ</a>
+                            <a href="${appleMusicLink}" target="_blank" class="venue-link apple-music-link">Apple Music</a>
+                        </div>
+                    </div>`;
+                });
+
+                popupContent += `</div>
+                </div>`;
+
+                marker.bindPopup(popupContent);
+                markerClusterGroup.addLayer(marker);
+            });
+        }
+
+        // Render list view
+        function renderListView(date) {
+            const listContent = document.getElementById('listContent');
+            listContent.innerHTML = '';
+
+            const events = eventData[date];
+            const venueMap = {};
+
+            // Group events by venue
+            events.forEach(event => {
+                if (!venueMap[event.venue]) {
+                    venueMap[event.venue] = [];
+                }
+                venueMap[event.venue].push(event);
+            });
+
+            // Sort venues alphabetically
+            const sortedVenues = Object.keys(venueMap).sort();
+
+            sortedVenues.forEach(venueName => {
+                const venueCard = document.createElement('div');
+                venueCard.className = 'venue-card';
+
+                let cardContent = `<div class="venue-card-title">${venueName}</div>`;
+
+                venueMap[venueName].forEach(event => {
+                    const artistName = event.artist.split(' ft.')[0].split(' with ')[0].split(' + ')[0].trim();
+                    const description = getArtistDescription(event.artist);
+                    const appleMusicLink = `https://music.apple.com/us/search?term=${encodeURIComponent(artistName)}`;
+                    const wwozLink = `https://www.wwoz.org${event.link}`;
+
+                    cardContent += `<div class="venue-card-event">
+                        <div class="event-card-time">${event.time}</div>
+                        <div class="event-card-artist">${event.artist}</div>`;
+
+                    if (description) {
+                        cardContent += `<div class="event-card-description">${description}</div>`;
+                    }
+
+                    cardContent += `<div class="venue-card-links">
+                            <a href="${wwozLink}" target="_blank" class="venue-card-link">WWOZ</a>
+                            <a href="${appleMusicLink}" target="_blank" class="venue-card-link apple-music-link">Apple</a>
+                        </div>
+                    </div>`;
+                });
+
+                venueCard.innerHTML = cardContent;
+                listContent.appendChild(venueCard);
+            });
+        }
+
+        // View toggle functionality
+        function attachViewToggleListeners() {
+            const mapViewBtn = document.getElementById('mapViewBtn');
+            const listViewBtn = document.getElementById('listViewBtn');
+            const mapEl = document.getElementById('map');
+            const listEl = document.getElementById('listContainer');
+
+            mapViewBtn.addEventListener('click', () => {
+                currentView = 'map';
+                mapViewBtn.classList.add('active');
+                listViewBtn.classList.remove('active');
+                mapEl.classList.add('active');
+                listEl.classList.remove('active');
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
+            });
+
+            listViewBtn.addEventListener('click', () => {
+                currentView = 'list';
+                listViewBtn.classList.add('active');
+                mapViewBtn.classList.remove('active');
+                listEl.classList.add('active');
+                mapEl.classList.remove('active');
+            });
+        }
+
+        // Create custom marker icon
+        function createCustomIcon() {
+            const html = '<div class="custom-marker"></div>';
+            return L.divIcon({
+                html: html,
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32],
+                className: 'custom-marker-container'
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initMap);
+    </script>
+</body>
+</html>
