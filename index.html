@@ -494,6 +494,33 @@
             transform: rotate(45deg);
         }
 
+        /* Day select dropdown (mobile only) */
+        .day-select {
+            display: none;
+            flex: 1;
+            padding: 0.6rem 1rem;
+            border: 2px solid #d4a843;
+            background: #0f3460;
+            color: #d4a843;
+            border-radius: 50px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23d4a843' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+        }
+
+        .day-select option {
+            background: #16213e;
+            color: #d4a843;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header-title {
@@ -501,19 +528,15 @@
             }
 
             .day-nav-container {
-                flex-wrap: wrap;
                 padding: 0.5rem 1rem;
             }
 
-            .view-toggle {
-                order: -1;
-                width: 100%;
-                margin-bottom: 0.5rem;
+            .day-nav {
+                display: none;
             }
 
-            .day-nav {
-                width: 100%;
-                flex-wrap: wrap;
+            .day-select {
+                display: block;
             }
 
             .day-btn {
@@ -601,6 +624,7 @@
 
         <div class="day-nav-container">
             <div class="day-nav" id="dayNav"></div>
+            <select class="day-select" id="daySelect"></select>
             <div class="view-toggle">
                 <button class="view-btn active" id="mapViewBtn" data-view="map">Map</button>
                 <button class="view-btn" id="listViewBtn" data-view="list">List</button>
@@ -701,7 +725,7 @@
                 { venue: 'Blue Nile', artist: 'Lyndsey Smith', time: '7:00pm', link: '/events/1310281', lat: 29.9630, lng: -90.0570 },
                 { venue: 'Broadside (Outdoor Stage)', artist: 'New African Orleans ft. Leyla McCalla, The Spirit of Fi Yi Yi, Corey Henry & The Treme Funktet', time: '4:30pm', link: '/events/1325146', lat: 29.9648, lng: -90.0420 },
                 { venue: 'Bud Rip\'s', artist: 'Tropical Sound System with DJs Carol C & Dubstreet', time: '10:00pm', link: '/events/1324811', lat: 29.9620, lng: -90.0510 },
-                { venue: 'Buffa\'s', artist: 'Laura Murphy & Joey Houch', time: '8:00pm', link: '/events/1318076', lat: 29.9656, lng: -90.0555 },
+                { venue: 'Buffa\'s', artist: 'Laura Murphy & Joey Houck', time: '8:00pm', link: '/events/1318076', lat: 29.9656, lng: -90.0555 },
                 { venue: 'Chickie Wah Wah', artist: 'Barns Courtney Unplugged Solo Sessions', time: '9:00pm', link: '/events/1318331', lat: 29.9820, lng: -90.1013 },
                 { venue: 'Davenport Lounge at The Ritz-Carlton', artist: 'Jeremy Davenport', time: '8:00pm', link: '/events/1315321', lat: 29.9546, lng: -90.0685 },
                 { venue: 'Dickie Brennan\'s Tableau', artist: 'New Orleans Spice Jazz Brunch Trio', time: '11:00am', link: '/events/1318886', lat: 29.9577, lng: -90.0630 },
@@ -745,7 +769,7 @@
                 { venue: 'BK House & Gardens', artist: 'Gay Easter Parade Party with T Marie & Bayou Juju', time: '4:30pm', link: '/events/1322071', lat: 29.9650, lng: -90.0470 },
                 { venue: 'Broadside (Outdoor Stage)', artist: 'That\'s My Neighbor Benefit Concert ft. Bra\'s Band Brass Band, Hans Williams, Kaye The Beast & More!', time: '2:00pm', link: '/events/1322076', lat: 29.9648, lng: -90.0420 },
                 { venue: 'Buffa\'s', artist: 'Some Like It Hot!', time: '11:00am', link: '/events/1317966', lat: 29.9656, lng: -90.0555 },
-                { venue: 'Celebration Hall', artist: 'Big 6 Brass Band', time: '9:00pm', link: '/events/1324666', lat: 29.9745, lng: -90.1060 },
+                { venue: 'Cele"ration Hall', artist: 'Big 6 Brass Band', time: '9:00pm', link: '/events/1324666', lat: 29.9745, lng: -90.1060 },
                 { venue: 'Chickie Wah Wah', artist: 'Giulia Millanta & Joy Clark', time: '8:00pm', link: '/events/1321776', lat: 29.9820, lng: -90.1013 },
                 { venue: 'Davenport Lounge at The Ritz-Carlton', artist: 'Jeremy Davenport', time: '7:00pm', link: '/events/1315326', lat: 29.9546, lng: -90.0685 },
                 { venue: 'Dickie Brennan\'s Tableau', artist: 'New Orleans Spice Jazz Brunch Trio', time: '11:00am', link: '/events/1318891', lat: 29.9577, lng: -90.0630 },
@@ -795,7 +819,7 @@
                 { venue: 'Buffa\'s', artist: 'Alex McMurray', time: '7:00pm', link: '/events/1318036', lat: 29.9656, lng: -90.0555 },
                 { venue: 'Caf\u00E9 Beignet on Decatur', artist: 'Bob Macy', time: '10:00am', link: '/events/1292031', lat: 29.9578, lng: -90.0630 },
                 { venue: 'Chickie Wah Wah', artist: 'Tricia Boutt\u00E9 & A Joyful Noise', time: '8:00pm', link: '/events/1310046', lat: 29.9820, lng: -90.1013 },
-                { venue: 'Davenport Lounge at The Ritz-Carlton', artist: 'Jeremy Davenport', time: '8:00pm', link: '/events/1315331', lat: 29.9546, lng: -90.0685 },
+                { venue: 'Davenport Lounge at The Ritz-Carlton', artist: 'Jeremy Davenport', time: '8:00pm', link: '/even4s/1315331', lat: 29.9546, lng: -90.0685 },
                 { venue: 'Dew Drop Inn Hotel & Lounge', artist: 'Dew Drop Open Mic Night', time: '7:00pm', link: '/events/1317096', lat: 29.9510, lng: -90.0970 },
                 { venue: 'Ellis Marsalis Center for Music', artist: 'NOCCA Jazz Ensemble', time: '6:00pm', link: '/events/1316511', lat: 29.9630, lng: -90.0340 },
                 { venue: 'Fillmore, The', artist: 'Counting Crows', time: '7:00pm', link: '/events/1310276', lat: 29.9506, lng: -90.0720 },
@@ -827,7 +851,7 @@
                 { venue: 'City Park - Botanical Garden (OUTDOORS)', artist: 'Evenings with Extraordinary Ales ft. Glen David Andrews', time: '5:00pm', link: '/events/1315536', lat: 29.9890, lng: -90.0960 },
                 { venue: 'City Park - Pavilion of the Two Sisters', artist: 'Wednesdays at the Pavilion ft. Meschiya Lake', time: '5:30pm', link: '/events/1315551', lat: 29.9875, lng: -90.0970 },
                 { venue: 'Davenport Lounge at The Ritz-Carlton', artist: 'Jeremy Davenport', time: '8:00pm', link: '/events/1315336', lat: 29.9546, lng: -90.0685 },
-                { venue: 'Dew Drop Inn Hotel & Lounge', artist: 'Washboard ChazBlues Trio', time: '8:00pm', link: '/events/1310736', lat: 29.9510, lng: -90.0970 },
+                { venue: 'Dew Drop Inn Hotel & Lounge', artist: 'Washboard Chaz Blues Trio', time: '8:00pm', link: '/events/1310736', lat: 29.9510, lng: -90.0970 },
                 { venue: 'House of Blues', artist: 'Teddy Swims', time: '7:00pm', link: '/events/1293376', lat: 29.9558, lng: -90.0680 },
                 { venue: 'Irene\'s', artist: 'Irene\'s Trio', time: '7:00pm', link: '/events/1297806', lat: 29.9601, lng: -90.0635 },
                 { venue: 'Lafayette Square (OUTDOORS)', artist: 'Wednesday at the Square ft. Galactic', time: '5:00pm', link: '/events/1315556', lat: 29.9488, lng: -90.0720 },
@@ -840,7 +864,7 @@
                 { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '6:15pm', link: '/events/1316831', lat: 29.9579, lng: -90.0653 },
                 { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '7:30pm', link: '/events/1316836', lat: 29.9579, lng: -90.0653 },
                 { venue: 'Preservation Hall', artist: 'Preservation All-Stars', time: '8:45pm', link: '/events/1316841', lat: 29.9579, lng: -90.0653 },
-                { venue: 'Rib Room at the Omni Royal Orleans', artist: 'Sugar Bear & The Jazz/Cats', time: '11:00am', link: '/events/1306201', lat: 29.9568, lng: -90.0645 },
+                { venue: 'Rib Room at the Omni Royal Orleans', artist: 'Sugar Bear & The Jazz Cats', time: '11:00am', link: '/events/1306201', lat: 29.9568, lng: -90.0645 },
                 { venue: 'Santos Bar', artist: 'Jake Eckert', time: '9:00pm', link: '/events/1324016', lat: 29.9645, lng: -90.0540 },
                 { venue: 'Saturn Bar', artist: 'Debauche', time: '9:00pm', link: '/events/1298576', lat: 29.9658, lng: -90.0430 },
                 { venue: 'Steamboat Natchez', artist: 'Steamboat Stompers', time: '11:00am', link: '/events/1306791', lat: 29.9550, lng: -90.0628 },
@@ -854,7 +878,7 @@
                 { venue: 'Bacchanal (OUTDOORS)', artist: 'Pete Olynciw', time: '6:00pm', link: '/events/1324541', lat: 29.9600, lng: -90.0376 },
                 { venue: 'Bayou Bar at the Pontchartrain', artist: 'Double Bird ft. Peter Harris, Ashlin Parker & Peter Varnado', time: '8:00pm', link: '/events/1315021', lat: 29.9535, lng: -90.0770 },
                 { venue: 'Bayou Bar at the Pontchartrain', artist: 'Double Bird ft. Peter Harris, Ashlin Parker & Peter Varnado', time: '10:00pm', link: '/events/1315026', lat: 29.9535, lng: -90.0770 },
-                { venue: 'Bu5ffa\'s', artist: 'Susanne Ortner & Tom McDermott (Early Set)', time: '7:00pm', link: '/events/1317891', lat: 29.9656, lng: -90.0555 },
+                { venue: 'Buffa\'s', artist: 'Susanne Ortner & Tom McDermott (Early Set)', time: '7:00pm', link: '/events/1317891', lat: 29.9656, lng: -90.0555 },
                 { venue: 'Buffa\'s', artist: 'Aurora Nealand & Tom McDermott (Second Set)', time: '8:00pm', link: '/events/1317896', lat: 29.9656, lng: -90.0555 },
                 { venue: 'Caf\u00E9 Beignet on Decatur', artist: 'Bob Macy', time: '10:00am', link: '/events/1292041', lat: 29.9578, lng: -90.0630 },
                 { venue: 'Chickie Wah Wah', artist: 'Nether Hour', time: '9:00pm', link: '/events/1322566', lat: 29.9820, lng: -90.1013 },
@@ -905,7 +929,7 @@
 
         // Initialize map
         function initMap() {
-            map = L.map('map').setView([29.9511, -90.2623], 12);
+            map = L.map('map').setView([29.9584, -90.0644], 14);
 
             L.tileLayer('https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OpenStreetMap contributors, &copy; CartoDB',
@@ -924,27 +948,42 @@
             attachViewToggleListeners();
         }
 
-        // Render day navigation buttons
+        // Render day navigation buttons and mobile dropdown
         function renderDayButtons() {
             const dayNav = document.getElementById('dayNav');
+            const daySelect = document.getElementById('daySelect');
             dayNav.innerHTML = '';
+            daySelect.innerHTML = '';
 
             dates.forEach((date, index) => {
+                const eventCount = eventData[date].length;
+
+                // Desktop: pill buttons
                 const button = document.createElement('button');
                 button.className = 'day-btn' + (date === currentDate ? ' active' : '');
-
-                const eventCount = eventData[date].length;
                 button.innerHTML = `${dateLabels[index]} <span class="event-badge">${eventCount}</span>`;
-
                 button.addEventListener('click', () => {
                     currentDate = date;
                     renderDayButtons();
                     renderMarkersForDate(date);
                     renderListView(date);
                 });
-
                 dayNav.appendChild(button);
+
+                // Mobile: select option
+                const option = document.createElement('option');
+                option.value = date;
+                option.selected = (date === currentDate);
+                option.textContent = `${dateLabels[index]}  (${eventCount} events)`;
+                daySelect.appendChild(option);
             });
+
+            daySelect.onchange = () => {
+                currentDate = daySelect.value;
+                renderDayButtons();
+                renderMarkersForDate(currentDate);
+                renderListView(currentDate);
+            };
         }
 
         // Render markers for selected date
@@ -1007,6 +1046,18 @@
             });
         }
 
+        // Parse "8:00pm" / "11:00am" to minutes since midnight for sorting
+        function parseTime(timeStr) {
+            const match = timeStr.match(/(\d+):(\d+)(am|pm)/i);
+            if (!match) return 0;
+            let h = parseInt(match[1]);
+            const m = parseInt(match[2]);
+            const period = match[3].toLowerCase();
+            if (period === 'pm' && h !== 12) h += 12;
+            if (period === 'am' && h === 12) h = 0;
+            return h * 60 + m;
+        }
+
         // Render list view
         function renderListView(date) {
             const listContent = document.getElementById('listContent');
@@ -1023,8 +1074,15 @@
                 venueMap[event.venue].push(event);
             });
 
-            // Sort venues alphabetically
-            const sortedVenues = Object.keys(venueMap).sort();
+            // Sort events within each venue by start time
+            Object.keys(venueMap).forEach(v => {
+                venueMap[v].sort((a, b) => parseTime(a.time) - parseTime(b.time));
+            });
+
+            // Sort venue cards by their earliest event
+            const sortedVenues = Object.keys(venueMap).sort((a, b) =>
+                parseTime(venueMap[a][0].time) - parseTime(venueMap[b][0].time)
+            );
 
             sortedVenues.forEach(venueName => {
                 const venueCard = document.createElement('div');
