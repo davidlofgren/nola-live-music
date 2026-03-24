@@ -661,6 +661,52 @@
             70%  { box-shadow: 0 0 0 10px rgba(77, 171, 247, 0);   }
             100% { box-shadow: 0 0 0 0   rgba(77, 171, 247, 0);   }
         }
+
+        /* Guinness toggle button */
+        .guinness-btn {
+            padding: 0.35rem 0.6rem;
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.55;
+        }
+
+        .guinness-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            opacity: 0.8;
+            transform: translateY(-2px);
+        }
+
+        .guinness-btn.active {
+            border-color: #fff;
+            background: rgba(255, 255, 255, 0.15);
+            opacity: 1;
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
+        }
+
+        .guinness-btn svg {
+            display: block;
+            width: 22px;
+            height: 30px;
+        }
+
+        /* Guinness pub marker */
+        .guinness-marker-container {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .guinness-marker-container svg {
+            width: 36px;
+            height: 48px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+        }
     </style>
 </head>
 <body>
@@ -676,6 +722,7 @@
             <div class="day-nav" id="dayNav"></div>
             <select class="day-select" id="daySelect"></select>
             <div class="view-toggle">
+                <button class="guinness-btn" id="guinnessToggleBtn" title="Toggle Guinness pubs"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 54"><path d="M6,14 L10,50 L30,50 L34,14 Z" fill="#0d0d0d" stroke="#444" stroke-width="1.5"/><path d="M6,14 Q8,7 11,11 Q14,5 18,9 Q21,4 25,9 Q28,6 32,11 Q34,8 34,14 Z" fill="white"/><line x1="6" y1="14" x2="34" y2="14" stroke="#555" stroke-width="0.5"/><line x1="17" y1="22" x2="17" y2="44" stroke="#c8791a" stroke-width="2" stroke-linecap="round"/><path d="M17,22 Q20,18 24,22" fill="none" stroke="#c8791a" stroke-width="1.5" stroke-linecap="round"/><path d="M17,22 C26,22 27,37 17,44" fill="none" stroke="#c8791a" stroke-width="1.5" stroke-linecap="round"/><line x1="17" y1="44" x2="23" y2="44" stroke="#c8791a" stroke-width="2" stroke-linecap="round"/><line x1="17" y1="27" x2="23" y2="27.5" stroke="#c8791a" stroke-width="1" opacity="0.85"/><line x1="17" y1="31" x2="24" y2="32" stroke="#c8791a" stroke-width="1" opacity="0.85"/><line x1="17" y1="35" x2="24" y2="36" stroke="#c8791a" stroke-width="1" opacity="0.85"/><line x1="17" y1="39" x2="23" y2="40.5" stroke="#c8791a" stroke-width="1" opacity="0.85"/></svg></button>
                 <button class="view-btn active" id="mapViewBtn" data-view="map">Map</button>
                 <button class="view-btn" id="listViewBtn" data-view="list">List</button>
             </div>
@@ -970,6 +1017,21 @@
         let userLocationMarker = null;
         let userLocationCircle = null;
 
+        // Guinness Pubs Data
+        const guinnessPubs = [
+            { name: "Finn McCool's Irish Pub", address: "3701 Banks St", lat: 29.9617, lng: -90.0843 },
+            { name: "Erin Rose", address: "811 Conti St", lat: 29.9581, lng: -90.0657 },
+            { name: "The Holy Ground Irish Pub", address: "3340 Canal St", lat: 29.9626, lng: -90.0790 },
+            { name: "The Boondock Saint Bar", address: "731 St Peter St", lat: 29.9580, lng: -90.0634 },
+            { name: "Molly's Irish Pub", address: "732 Toulouse St", lat: 29.9577, lng: -90.0641 },
+            { name: "Kerry Irish Pub", address: "331 Decatur St", lat: 29.9528, lng: -90.0693 }
+        ];
+
+        let guinnessLayerGroup = null;
+        let guinnessVisible = false;
+
+        const GUINNESS_PIN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 54"><path d="M6,14 L10,50 L30,50 L34,14 Z" fill="#0d0d0d" stroke="#444" stroke-width="1.5"/><path d="M6,14 Q8,7 11,11 Q14,5 18,9 Q21,4 25,9 Q28,6 32,11 Q34,8 34,14 Z" fill="white"/><line x1="6" y1="14" x2="34" y2="14" stroke="#555" stroke-width="0.5"/><line x1="17" y1="22" x2="17" y2="44" stroke="#c8791a" stroke-width="2" stroke-linecap="round"/><path d="M17,22 Q20,18 24,22" fill="none" stroke="#c8791a" stroke-width="1.5" stroke-linecap="round"/><path d="M17,22 C26,22 27,37 17,44" fill="none" stroke="#c8791a" stroke-width="1.5" stroke-linecap="round"/><line x1="17" y1="44" x2="23" y2="44" stroke="#c8791a" stroke-width="2" stroke-linecap="round"/><line x1="17" y1="27" x2="23" y2="27.5" stroke="#c8791a" stroke-width="1" opacity="0.85"/><line x1="17" y1="31" x2="24" y2="32" stroke="#c8791a" stroke-width="1" opacity="0.85"/><line x1="17" y1="35" x2="24" y2="36" stroke="#c8791a" stroke-width="1" opacity="0.85"/><line x1="17" y1="39" x2="23" y2="40.5" stroke="#c8791a" stroke-width="1" opacity="0.85"/></svg>';
+
         // Get description for artist
         function getArtistDescription(artistName) {
             for (const [key, description] of Object.entries(artistDescriptions)) {
@@ -1195,6 +1257,8 @@
                 listEl.classList.add('active');
                 mapEl.classList.remove('active');
             });
+
+            document.getElementById('guinnessToggleBtn').addEventListener('click', toggleGuinnessPubs);
         }
 
         // Locate Me control
@@ -1305,6 +1369,52 @@
                 popupAnchor: [0, -32],
                 className: 'custom-marker-container'
             });
+        }
+
+        // Create Guinness pint glass icon
+        function createGuinnessIcon() {
+            return L.divIcon({
+                html: GUINNESS_PIN_SVG,
+                iconSize: [36, 48],
+                iconAnchor: [18, 48],
+                popupAnchor: [0, -50],
+                className: 'guinness-marker-container'
+            });
+        }
+
+        // Build the Guinness layer (lazy — only once)
+        function buildGuinnessLayer() {
+            if (guinnessLayerGroup) return;
+            guinnessLayerGroup = L.layerGroup();
+            guinnessPubs.forEach(pub => {
+                const marker = L.marker([pub.lat, pub.lng], { icon: createGuinnessIcon() });
+                const popup = `<div class="venue-popup">
+                    <div class="venue-popup-title">${pub.name}</div>
+                    <div class="venue-events">
+                        <div class="venue-event">
+                            <div class="event-artist" style="font-size:0.9rem;">🍺 Guinness on tap</div>
+                            <div class="event-description" style="margin-top:0.3rem;">${pub.address}</div>
+                        </div>
+                    </div>
+                </div>`;
+                marker.bindPopup(popup);
+                guinnessLayerGroup.addLayer(marker);
+            });
+        }
+
+        // Toggle Guinness pub markers on/off
+        function toggleGuinnessPubs() {
+            const btn = document.getElementById('guinnessToggleBtn');
+            buildGuinnessLayer();
+            if (guinnessVisible) {
+                map.removeLayer(guinnessLayerGroup);
+                guinnessVisible = false;
+                btn.classList.remove('active');
+            } else {
+                guinnessLayerGroup.addTo(map);
+                guinnessVisible = true;
+                btn.classList.add('active');
+            }
         }
 
         // Initialize on page load
